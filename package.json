@@ -2,10 +2,6 @@
   "name": "pelisplus",
   "version": "1.0.0",
   "type": "module",
-  "main": "api/scraper.js",
-  "scripts": {
-    "dev": "vercel dev"
-  },
   "dependencies": {
     "puppeteer-core": "^10.1.0",
     "chrome-aws-lambda": "^10.1.0"
