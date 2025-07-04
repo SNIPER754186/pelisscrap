@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer-core';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -21,8 +22,7 @@ async function extraerEmbed69DesdePelisPlus(page, pelisplusUrl) {
   const html = await page.content();
   const match = html.match(/(https?:\/\/embed69\.org\/[^\s"'<>]+)/);
   if (!match) throw new Error('No se encontró embed69 en PelisPlus');
-  let embed69Url = match[1];
-  return embed69Url.endsWith('/') ? embed69Url : embed69Url + '/';
+  return match[1].endsWith('/') ? match[1] : match[1] + '/';
 }
 
 async function extraerServidoresDesdeEmbed69(page, embed69Url) {
@@ -93,9 +93,11 @@ export default async function handler(req, res) {
 
   try {
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: chromium.args,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
     });
+
     const page = await browser.newPage();
 
     sendData({ type: 'info', message: 'Buscando embed69...' });
