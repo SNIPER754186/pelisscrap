@@ -1,306 +1,99 @@
-<!-- index.html ADAPTADO A PELIS -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scraper PelisPlus - LatamSRC</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #030712; }
-    #canvas-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
-    .main-content { position: relative; z-index: 1; }
-    /* Custom Scrollbar for results */
-    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; border-radius: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #ec4899; border-radius: 20px; border: 2px solid #1f2937; }
-    .spinner { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scraper PelisPlus</title>
+<script src="https://kit.fontawesome.com/a2e5b4b4d1.js" crossorigin="anonymous"></script>
+<style>
+  body { background:#111; color:#eee; font-family: Arial,sans-serif; padding:20px; }
+  input, button { padding: 10px; font-size: 1rem; }
+  #progress-bar { height: 20px; background: linear-gradient(90deg, #ec4899, #8b5cf6); width: 0%; transition: width 0.3s; }
+  #results { margin-top: 1rem; max-height: 300px; overflow-y: auto; background:#222; padding:10px; border-radius: 8px; }
+  pre { background:#000; padding:10px; border-radius: 6px; overflow-x: auto; }
+</style>
 </head>
-<body class="text-white">
-<canvas id="canvas-background"></canvas>
+<body>
 
-<div class="main-content flex items-center justify-center min-h-screen p-4">
-  <div class="w-full max-w-2xl p-8 bg-gray-900/60 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10">
-    <div class="flex items-center justify-center gap-3">
-      <i class="fa-solid fa-film text-3xl text-pink-400"></i>
-      <h1 class="text-4xl font-bold text-center">Scraper PelisPlus</h1>
-    </div>
-    <p class="text-center text-gray-400 mt-2 mb-8">Introduce la URL de una película para obtener los enlaces de reproducción.</p>
+<h1>Scraper PelisPlus</h1>
 
-    <form id="scraper-form" class="space-y-4">
-      <div class="flex items-center bg-gray-900 rounded-lg p-2 border-2 border-gray-700 focus-within:border-pink-500 focus-within:ring-2 focus-within:ring-pink-500/50 transition-all duration-300">
-        <i class="fa-solid fa-link text-gray-500 px-3"></i>
-        <input 
-          type="url" 
-          id="movie_url" 
-          name="movie_url" 
-          class="w-full bg-transparent text-white placeholder-gray-500 focus:outline-none px-3 py-2"
-          placeholder="https://pelisplushd.bz/pelicula/inmersion-letal"
-          required 
-        />
-      </div>
+<form id="scraper-form">
+  <input id="movie_url" type="url" placeholder="URL de película" required style="width: 70%" />
+  <button type="submit">Extraer</button>
+</form>
 
-      <button type="submit" id="submit-button" class="w-full sm:w-auto bg-pink-600 hover:bg-pink-700 disabled:bg-pink-800 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2">
-        <span id="submit-button-text">Extraer</span>
-        <i id="submit-button-icon" class="fa-solid fa-arrow-right"></i>
-      </button>
-    </form>
-
-    <!-- Loading Indicator -->
-    <div id="loading-overlay" class="hidden mt-6 p-6 bg-gray-900/70 rounded-lg transition-opacity duration-500">
-      <div id="status-text" class="text-center text-lg mb-4">Iniciando scraper...</div>
-      <div class="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
-        <div id="progress-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
-      </div>
-      <div class="text-center mt-2 text-sm text-gray-400"><span id="progress-label">0%</span></div>
-      <div class="text-center mt-6">
-        <button id="stop-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition transform hover:scale-105">
-          <i class="fa-solid fa-stop mr-2"></i>Parar Proceso
-        </button>
-      </div>
-    </div>
-
-    <!-- Results Container -->
-    <div id="results-container" class="hidden mt-8 opacity-0 transition-opacity duration-1000">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-2xl font-bold">Resultados Obtenidos</h2>
-            <button id="copy-button" title="Copiar resultados" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2">
-                <i class="fa-solid fa-copy"></i>
-                <span id="copy-button-text">Copiar</span>
-            </button>
-        </div>
-      <div id="results" class="bg-gray-900/80 p-4 rounded-lg max-h-96 overflow-y-auto space-y-3 custom-scrollbar"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="text-center mt-8 pt-6 border-t border-white/10">
-      <p class="text-gray-500 mb-3">Creado por LatamSRCPlus</p>
-      <div class="flex justify-center items-center gap-6">
-        <a href="https://pelisplushd.bz/" class="flex items-center text-gray-400 hover:text-pink-400 transition-colors gap-2" target="_blank" rel="noopener noreferrer">
-          <img src="https://placehold.co/24x24/111827/ec4899?text=P" alt="PelisPlus Icon" class="w-6 h-6 object-contain rounded-full" /> PelisPlus
-        </a>
-        <a href="https://t.me/gatesccn" class="flex items-center text-gray-400 hover:text-pink-400 transition-colors gap-2" target="_blank" rel="noopener noreferrer">
-          <i class="fab fa-telegram-plane text-lg"></i> Telegram Gates
-        </a>
-      </div>
-    </div>
-  </div>
+<div style="margin-top:1rem; background:#333; border-radius:6px; overflow:hidden;">
+  <div id="progress-bar"></div>
 </div>
+<div id="status-text" style="margin-top: 0.5rem;"></div>
+
+<div id="results"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // --- Canvas Background Animation ---
-  const canvas = document.getElementById('canvas-background');
-  const ctx = canvas.getContext('2d');
-  let particlesArray;
-
-  function initCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    particlesArray = [];
-    let numberOfParticles = (canvas.height * canvas.width) / 9000;
-    if (numberOfParticles > 150) numberOfParticles = 150; // Performance cap
-    for (let i = 0; i < numberOfParticles; i++) {
-      let size = (Math.random() * 2) + 1;
-      let x = Math.random() * (innerWidth - size * 2) + size;
-      let y = Math.random() * (innerHeight - size * 2) + size;
-      let directionX = (Math.random() * 0.4) - 0.2;
-      let directionY = (Math.random() * 0.4) - 0.2;
-      let color = 'rgba(236, 72, 153, 0.8)';
-      particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
-    }
-  }
-
-  class Particle {
-    constructor(x, y, directionX, directionY, size, color) {
-      this.x = x; this.y = y; this.directionX = directionX;
-      this.directionY = directionY; this.size = size; this.color = color;
-    }
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-    }
-    update() {
-      if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
-      if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
-      this.x += this.directionX; this.y += this.directionY;
-      this.draw();
-    }
-  }
-
-  function connect() {
-      let opacityValue = 1;
-      for (let a = 0; a < particlesArray.length; a++) {
-          for (let b = a; b < particlesArray.length; b++) {
-              let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x))
-                           + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
-              if (distance < (canvas.width / 7) * (canvas.height / 7)) {
-                  opacityValue = 1 - (distance / 20000);
-                  ctx.strokeStyle = `rgba(216, 180, 254, ${opacityValue})`;
-                  ctx.lineWidth = 1;
-                  ctx.beginPath();
-                  ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                  ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                  ctx.stroke();
-              }
-          }
-      }
-  }
-
-  function animate() {
-    requestAnimationFrame(animate);
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
-    particlesArray.forEach(p => p.update());
-    connect();
-  }
-
-  window.addEventListener('resize', initCanvas);
-  initCanvas();
-  animate();
-
-  // --- Scraper Logic ---
   const form = document.getElementById('scraper-form');
-  const submitButton = document.getElementById('submit-button');
-  const submitButtonText = document.getElementById('submit-button-text');
-  const submitButtonIcon = document.getElementById('submit-button-icon');
-  const loadingOverlay = document.getElementById('loading-overlay');
-  const stopButton = document.getElementById('stop-button');
-  const resultsContainer = document.getElementById('results-container');
-  const resultsDiv = document.getElementById('results');
   const progressBar = document.getElementById('progress-bar');
-  const progressLabel = document.getElementById('progress-label');
+  const results = document.getElementById('results');
   const statusText = document.getElementById('status-text');
-  const copyButton = document.getElementById('copy-button');
-  const copyButtonText = document.getElementById('copy-button-text');
-  let eventSource = null;
 
-  function resetUI() {
-    submitButton.disabled = false;
-    submitButtonText.textContent = 'Extraer';
-    submitButtonIcon.className = 'fa-solid fa-arrow-right';
-    loadingOverlay.classList.add('hidden');
-  }
+  let evtSource;
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const movieUrl = document.getElementById('movie_url').value.trim();
-    if (!movieUrl) {
-        alert('Por favor, ingresa una URL válida de película.');
-        return;
+
+    if (evtSource) evtSource.close();
+    results.innerHTML = '';
+    progressBar.style.width = '0%';
+    statusText.textContent = 'Iniciando...';
+
+    const url = document.getElementById('movie_url').value.trim();
+    if (!url) {
+      alert('Ingrese una URL válida');
+      return;
     }
 
-    // Reset and prepare UI for new request
-    resultsDiv.innerHTML = '';
-    resultsContainer.classList.add('hidden');
-    resultsContainer.style.opacity = 0;
-    progressBar.style.width = '0%';
-    progressLabel.textContent = '0%';
-    statusText.textContent = 'Iniciando scraper...';
-    loadingOverlay.classList.remove('hidden');
+    const apiUrl = `/api/scraper?url=${encodeURIComponent(url)}`;
 
-    submitButton.disabled = true;
-    submitButtonText.textContent = 'Extrayendo...';
-    submitButtonIcon.className = 'fa-solid fa-spinner spinner';
+    evtSource = new EventSource(apiUrl);
 
-    // Connect to backend
-    const backendUrl = `scraper.php?url=${encodeURIComponent(movieUrl)}`;
-    eventSource = new EventSource(backendUrl);
-
-    eventSource.onmessage = e => {
+    evtSource.onmessage = e => {
       try {
         const data = JSON.parse(e.data);
-        
-        if (data.type === 'info') {
+
+        if(data.type === 'info') {
           statusText.textContent = data.message;
-        } else if (data.type === 'progress') {
+        }
+        else if(data.type === 'progress') {
           const percent = Math.floor((data.current / data.total) * 100);
           progressBar.style.width = percent + '%';
-          progressLabel.textContent = percent + '%';
-          statusText.textContent = `Procesando enlaces (${data.current}/${data.total})`;
-        } else if (data.type === 'success') {
-          if (resultsContainer.classList.contains('hidden')) {
-            resultsContainer.classList.remove('hidden');
-            setTimeout(() => resultsContainer.style.opacity = 1, 10);
-          }
-          const p = document.createElement('pre');
-          p.className = 'whitespace-pre-wrap break-all bg-gray-800 rounded p-3 text-sm font-mono text-green-400';
-          p.textContent = data.output;
-          resultsDiv.appendChild(p);
-        } else if (data.type === 'done') {
-          statusText.textContent = 'Proceso finalizado.';
-          setTimeout(resetUI, 1000); // Wait a bit before resetting
-          eventSource.close(); 
-          eventSource = null;
-        } else if (data.type === 'error') {
-            statusText.textContent = `Error: ${data.message}`;
-            eventSource.close();
-            eventSource = null;
-            setTimeout(resetUI, 3000);
+          statusText.textContent = data.message + ` (${percent}%)`;
         }
-      } catch (err) {
-        console.error('Error al procesar el mensaje del servidor:', err);
-        statusText.textContent = 'Error en los datos recibidos.';
-        setTimeout(resetUI, 3000);
-        if (eventSource) eventSource.close();
+        else if(data.type === 'success') {
+          const pre = document.createElement('pre');
+          pre.textContent = JSON.stringify(data.output, null, 2);
+          results.appendChild(pre);
+        }
+        else if(data.type === 'error') {
+          const pre = document.createElement('pre');
+          pre.style.color = 'red';
+          pre.textContent = `Error: ${data.message}`;
+          results.appendChild(pre);
+        }
+        else if(data.type === 'done') {
+          statusText.textContent = 'Proceso terminado.';
+          progressBar.style.width = '100%';
+          evtSource.close();
+        }
+      } catch(err) {
+        console.error('Error parsing SSE data', err);
       }
     };
 
-    eventSource.onerror = () => {
-      statusText.textContent = 'Error de conexión. No se pudo contactar al backend.';
-      resetUI();
-      if (eventSource) eventSource.close();
-      eventSource = null;
+    evtSource.onerror = () => {
+      statusText.textContent = 'Error en la conexión SSE.';
+      evtSource.close();
     };
   });
-
-  stopButton.addEventListener('click', () => {
-    if (eventSource) {
-      eventSource.close(); eventSource = null;
-      statusText.textContent = 'Proceso detenido por el usuario.';
-      setTimeout(resetUI, 2000);
-    }
-  });
-
-  // --- Copy Button Logic ---
-  copyButton.addEventListener('click', () => {
-    const textToCopy = resultsDiv.innerText;
-    if (!textToCopy) return;
-
-    const textArea = document.createElement('textarea');
-    textArea.value = textToCopy;
-    textArea.style.position = 'fixed';
-    textArea.style.top = '-9999px';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    
-    textArea.select();
-    
-    try {
-      document.execCommand('copy');
-      copyButtonText.textContent = '¡Copiado!';
-      copyButton.classList.remove('bg-gray-700', 'hover:bg-gray-600');
-      copyButton.classList.add('bg-green-500');
-      setTimeout(() => {
-        copyButtonText.textContent = 'Copiar';
-        copyButton.classList.remove('bg-green-500');
-        copyButton.classList.add('bg-gray-700', 'hover:bg-gray-600');
-      }, 2000);
-    } catch (err) {
-      console.error('No se pudo copiar al portapapeles:', err);
-      copyButtonText.textContent = 'Error';
-       setTimeout(() => {
-        copyButtonText.textContent = 'Copiar';
-      }, 2000);
-    }
-    document.body.removeChild(textArea);
-  });
-});
 </script>
+
 </body>
 </html>
