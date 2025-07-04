@@ -3,7 +3,10 @@ import puppeteer from 'puppeteer-core';
 
 export default async function handler(req, res) {
   const url = req.query.url;
-  if (!url) return res.status(400).send("Missing URL");
+  if (!url) {
+    res.status(400).json({ error: "Missing URL" });
+    return;
+  }
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -16,21 +19,24 @@ export default async function handler(req, res) {
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath,
+      executablePath: await chromium.executablePath || '/usr/bin/chromium-browser',
       headless: chromium.headless,
     });
 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-    // Simula logs o scrap aquí:
     res.write(`data: ${JSON.stringify({ type: 'success', message: 'Página cargada correctamente' })}\n\n`);
 
-  } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
+    // Puedes scrapear aquí...
+    const html = await page.content();
+    res.write(`data: ${JSON.stringify({ type: 'html', html })}\n\n`);
+
+  } catch (error) {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
   } finally {
-    if (browser !== null) await browser.close();
-    res.write(`data: ${JSON.stringify({ type: 'done', message: 'Finalizado' })}\n\n`);
+    if (browser) await browser.close();
+    res.write(`data: ${JSON.stringify({ type: 'done', message: 'Scraping terminado' })}\n\n`);
     res.end();
   }
 }
