@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   res.flushHeaders();
 
   // Ejecutar tu script Puppeteer con spawn para emitir datos por stdout
-  const process = spawn('node', ['api/scraper_script.js', url]);
+  const process = spawn('node', ['./api/scraper_script.js', url]);
 
   process.stdout.on('data', (data) => {
     // Asume que el script imprime JSON por línea
